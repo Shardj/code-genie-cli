@@ -1,12 +1,4 @@
-import openai
-import os
-import subprocess
-import tempfile
-import sys
-import platform
-import json
-import argparse
-import re
+import openai, os, subprocess, sys, platform, json, argparse, re
 from typing import Dict, Optional, Any, List
 from definitions import KEY_PATH
 from colorama import Fore, Style, init
@@ -149,7 +141,18 @@ find . -name "catphoto.png"
 
 
   def __chat_ask_and_response_handling(self, prompt: str) -> None:
-    response = self.__call_chat_gpt(prompt, self.chat_history)
+    response = None
+    # Optional debug operation
+    if self.debug:
+      print(Fore.YELLOW + f"Debug, would you like to write GPT's response yourself? (y/n)")
+      action = input().lower()
+      if action == "y":
+        print(Fore.YELLOW + f"Okay, what would you like GPT to respond with?")
+        response = input()
+    
+    # Normal operation
+    if not response:
+      response = self.__call_chat_gpt(prompt, self.chat_history)
       
     print(Fore.BLUE + "\nResponse:")
     print(f"----------------{Style.NORMAL}")

@@ -26,10 +26,15 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR" # Go to project root
 
 if [ ! -f openai_key.txt ]; then
-  infoMessage "openai_key.txt not found."
-  read -p "Please enter your OpenAI API key: " api_key
-  echo "$api_key" > openai_key.txt
-  infoMessage "API key saved to openai_key.txt"
+  if [ -f chatgpt_key.txt ]; then
+    infoMessage "chatgpt_key.txt found. Renaming to openai_key.txt"
+    mv chatgpt_key.txt openai_key.txt
+  else
+    infoMessage "openai_key.txt not found."
+    read -p "Please enter your OpenAI API key: " api_key
+    echo "$api_key" > openai_key.txt
+    infoMessage "API key saved to openai_key.txt"
+  fi
 fi
 
 # If python3 command isn't found, and python command isn't found or it is found but is not version 3

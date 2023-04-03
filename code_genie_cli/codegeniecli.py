@@ -130,14 +130,13 @@ find . -name "catphoto.png"
       execute_results = e
 
     print(f"{Fore.CYAN}{Style.BRIGHT}----------------")
-
-    if execute_results.returncode != 0:
-      print(Fore.GREEN + "\nWould you like to give the returned error to the chatbot? (y/n)")
-      print(f"----------------{Style.NORMAL}")
-      action = input().lower()
-      print(f"{Style.BRIGHT}----------------")
-      if action == "y":
-        self.__chat_ask_and_response_handling(f"The code execution errored: \n{execute_results}")
+    
+    print(Fore.GREEN + "\nWould you like to give the output to the chatbot? (y/n)")
+    print(f"----------------{Style.NORMAL}")
+    action = input().lower()
+    print(f"{Style.BRIGHT}----------------")
+    if action == "y":
+      self.__chat_ask_and_response_handling(f"The code execution errored: \n{execute_results}")
 
 
   def __chat_ask_and_response_handling(self, prompt: str) -> None:

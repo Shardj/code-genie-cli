@@ -5,11 +5,17 @@ Uses OpenAI's GPT API to get a helpful assistant within your terminal. Genie can
 ![image of program in use](demo.png)
 ## Installation
 
+### Quick
+
+* Clone project to local machine, run ./install.sh which just goes through the manual steps automatically
+
+### Manual
+
 * Clone project to local machine
 
 * Install python3 and python3-pip if not already installed
 
-* Create file called chatgpt_key.txt in project directory, copy and paste your OpenAI key into this file. You get $18 free credit as a new user signing up to https://platform.openai.com/.
+* Create file called openai_key.txt in project directory, copy and paste your OpenAI key into this file. You get $18 free credit as a new user signing up to https://platform.openai.com/.
 
 * `cd` into the project directory and run `pip3 install -e .`
 

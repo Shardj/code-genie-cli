@@ -11,4 +11,4 @@ build/
 *.egg
 
 # API Key
-chatgpt_key.txt
+openai_key.txt

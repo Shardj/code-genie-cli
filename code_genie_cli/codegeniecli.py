@@ -9,6 +9,7 @@ class CodeGenieCLI:
     openai.api_key = self.__read_api_key_from_file()
     self.debug = self.__parse_arguments()
     self.chat_history = []
+    self.temperature = 0.3 # Minimum value is 0.0, maximum value is 1.0. We want the model to be fairly consistent and not too random.
     self.system_content = self.__get_system_content()
 
   def __parse_arguments(self) -> bool:
@@ -76,41 +77,45 @@ find . -name "catphoto.png"
 ```"
 """
 
-  def __call_chat_gpt(self, prompt: str, messages: List[Dict[str, str]], retry: bool = True, max_tokens: int = 1024) -> str:
-    if not messages:
-      # Add the system message to the beginning of the messages list
-      messages.insert(0, {"role": "system", "content": self.system_content})
-
-    # Add the user message to the end of the messages list
-    messages.append({"role": "user", "content": prompt})
-      
+  # If there is no prompt then the existing chat history is used.
+  def __call_chat_gpt(self, prompt: str = None) -> str:
+    if prompt is not None:
+      # Add the user's prompt to the end of the self.chat_history list
+      self.chat_history.append({"role": "user", "content": prompt})
+    
+    # Attempt to query openai
     try:
       response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=messages,
-        max_tokens=max_tokens, # Max value is 4096
-        temperature=0.3,
+        messages=[{"role": "system", "content": self.system_content}] + self.chat_history,
+        temperature=self.temperature,
       )
     except Exception as e:
       if self.debug:
-        print(Fore.YELLOW + f"Debug, all messages: {json.dumps(messages, indent=2)}")
+        print(Fore.YELLOW + f"Debug, all messages: {json.dumps([{'role': 'system', 'content': self.system_content}] + self.chat_history, indent=2)}")
       print(Fore.RED + "Error: Failed to send message to OpenAI.")
       print(Fore.RED + f"Error message: {e}")
       sys.exit(1)
-
-    response_text = response.choices[0].message.content.strip()
-    if (response.choices[0].finish_reason == "length"):
-      if max_tokens >= 4096:
-        print(Fore.RED + "Error: OpenAI returned a truncated response, but max_tokens is already 4096.")
-        # If we've already tried with max_tokens=4096, We've informed the user of the error and they can use the truncated output as they like.
-      else:
-        if self.debug:
-          print(Fore.YELLOW + "Warning: OpenAI returned a truncated response. Retrying with a larger max_tokens.")
-        messages.pop()
-        return self.__call_chat_gpt(prompt, messages, retry=True, max_tokens=4096)
-    messages.append(response.choices[0].message)
     
-    return response_text
+    if self.debug:
+      print(Fore.YELLOW + f"Debug, would you like to see the raw response object? (y/n)")
+      action = input().lower()
+      if action == "y":
+        print(Fore.YELLOW + f"Debug, response: {json.dumps(response, indent=2)}")
+
+    if (response.choices[0].finish_reason == "length"):
+      if self.chat_history.length <= 2:
+        print(Fore.RED + "Error: OpenAI returned a truncated response due to token limit, unable to remove old messages and retry as there aren't any old messages.")
+        # There is no way to handle this error, this is a hard limit and the user can only lower their input length. God knows how they managed to hit it with one message anyway if this is ever hit.
+      else:
+        # If the API somehow becomes near instantanious in the future we'll want to drop a sleep in here to avoid spamming the API and draining credits rapidly.
+        print(Fore.YELLOW + "Warning: OpenAI returned a truncated response. Removing earliest message from chat history and retrying.")
+        self.chat_history.pop(0)
+        return self.__call_chat_gpt()
+    
+    # If we've made it this far, the response is valid, we can add it to the chat history and return the content string.
+    self.chat_history.append(response.choices[0].message)
+    return response.choices[0].message.content.strip()
 
   def __execute_code(self, code: str) -> None:
     print(Fore.CYAN + "\nExecution output:")
@@ -130,7 +135,7 @@ find . -name "catphoto.png"
       execute_results = e
 
     print(f"{Fore.CYAN}{Style.BRIGHT}----------------")
-    
+
     print(Fore.GREEN + "\nWould you like to give the output to the chatbot? (y/n)")
     print(f"----------------{Style.NORMAL}")
     action = input().lower()
@@ -151,7 +156,7 @@ find . -name "catphoto.png"
     
     # Normal operation
     if not response:
-      response = self.__call_chat_gpt(prompt, self.chat_history)
+      response = self.__call_chat_gpt(prompt)
       
     print(Fore.BLUE + "\nResponse:")
     print(f"----------------{Style.NORMAL}")

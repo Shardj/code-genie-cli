@@ -1,22 +1,15 @@
 import openai, os, subprocess, sys, platform, json, argparse, re
 from typing import Dict, Optional, Any, List
-from definitions import KEY_PATH
-from colorama import Fore, Style, init
+from definitions import KEY_PATH, DEBUG
+from colorama import Fore, Style
+from code_genie_cli.chat_history import ChatHistory
 
 # Main and only class of the project at time of writing, used by calling run() on an instance of it. Or just calling main().
 class CodeGenieCLI:
   def __init__(self) -> None:
     openai.api_key = self.__read_api_key_from_file()
-    self.debug = self.__parse_arguments()
-    self.chat_history = []
+    self.chat_history = ChatHistory()
     self.temperature = 0.3 # Minimum value is 0.0, maximum value is 1.0. We want the model to be fairly consistent and not too random.
-    self.system_content = self.__get_system_content()
-
-  def __parse_arguments(self) -> bool:
-    parser = argparse.ArgumentParser(description="A CLI tool powered by GPT-3.5-turbo.")
-    parser.add_argument('-d', '--debug', action='store_true', help="Enable debug mode")
-    args = parser.parse_args()
-    return args.debug
 
   def __read_api_key_from_file(self) -> str:
     try:
@@ -27,21 +20,7 @@ class CodeGenieCLI:
       print(Fore.RED + "Please make sure the file exists and contains your API key.")
       sys.exit(1)
 
-  def run(self) -> None:
-      try:
-        print(f"{Style.BRIGHT}{Fore.GREEN}Welcome to {Fore.MAGENTA}code-genie-cli{Fore.GREEN}!")
-        while True:
-          print(f"\n{Fore.GREEN}Prompt: ")
-          print(f"----------------{Style.NORMAL}")
-          prompt = input()
-          print(f"{Style.BRIGHT}----------------")
-          escaped_prompt = prompt.replace('"', r'\"')
-          self.__chat_ask_and_response_handling(f'$ code-genie-cli "{escaped_prompt}"')
-      except KeyboardInterrupt:
-        print(Fore.YELLOW + "\n\nExiting the script gracefully." + Style.RESET_ALL)
-        sys.exit(0)
-
-  def __get_system_content(self) -> str:
+  def __generate_system_content(self) -> str:
     return f"""You are a CLI tool run within a terminal which is able to run bash commands, assist the user with their requests.
 Some examples of functionality you can provide are; telling the user how much space is on their drive, writing code for them, or formating files.
 If a user asks for something, do not waste time asking if they want it. Just do it and inform them of what you did.
@@ -77,44 +56,102 @@ find . -name "catphoto.png"
 ```"
 """
 
+  def run(self) -> None:
+      try:
+        print(f"{Style.BRIGHT}{Fore.GREEN}Welcome to {Fore.MAGENTA}code-genie-cli{Fore.GREEN}!")
+        # Our first prompt will be the system message, this gets genie to introduce themselves to the user as well as allowing us to calculate how many tokens it is
+        self.__chat_ask_and_response_handling(self.__generate_system_content(), "system")
+        while True:
+          print(f"\n{Fore.GREEN}Prompt: ")
+          print(f"----------------{Style.NORMAL}")
+          prompt = input()
+          print(f"{Style.BRIGHT}----------------")
+          escaped_prompt = prompt.replace('"', r'\"')
+          self.__chat_ask_and_response_handling(f'$ code-genie-cli "{escaped_prompt}"')
+      except KeyboardInterrupt:
+        print(Fore.YELLOW + "\n\nExiting the script gracefully." + Style.RESET_ALL)
+        sys.exit(0)
+
   # If there is no prompt then the existing chat history is used.
-  def __call_chat_gpt(self, prompt: str = None) -> str:
-    if prompt is not None:
-      # Add the user's prompt to the end of the self.chat_history list
-      self.chat_history.append({"role": "user", "content": prompt})
-    
+  def __call_chat_gpt(self, prompt: str, role: str) -> str:
+    temporary_chat_history = self.chat_history.get_history()[:]
+    # Add the user's prompt to the end of the self.chat_history list
+    temporary_chat_history.append({"role": role, "content": prompt})
+    if DEBUG:
+      print(Fore.YELLOW + f"Debug, would you like to see the message that'll be sent to GPT? (y/n)")
+      if input().lower() == "y":
+        print(f"temporary_chat_history: {temporary_chat_history}")
+
     # Attempt to query openai
     try:
+      # Example response
+      # {
+      #   "id": "chatcmpl-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      #   "object": "chat.completion",
+      #   "created": 1680537446,
+      #   "model": "gpt-3.5-turbo-0301",
+      #   "usage": {
+      #     "prompt_tokens": 459,
+      #     "completion_tokens": 9,
+      #     "total_tokens": 468
+      #   },
+      #   "choices": [
+      #     {
+      #       "message": {
+      #         "role": "assistant",
+      #         "content": "Hello! How can I assist you today?"
+      #       },
+      #       "finish_reason": "stop",
+      #       "index": 0
+      #     }
+      #   ]
+      # }
       response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": self.system_content}] + self.chat_history,
+        messages=temporary_chat_history,
         temperature=self.temperature,
       )
     except Exception as e:
-      if self.debug:
-        print(Fore.YELLOW + f"Debug, all messages: {json.dumps([{'role': 'system', 'content': self.system_content}] + self.chat_history, indent=2)}")
+      if DEBUG:
+        print(Fore.YELLOW + f"Debug, all messages: {json.dumps(temporary_chat_history, indent=2)}")
       print(Fore.RED + "Error: Failed to send message to OpenAI.")
       print(Fore.RED + f"Error message: {e}")
       sys.exit(1)
     
-    if self.debug:
+    if DEBUG:
       print(Fore.YELLOW + f"Debug, would you like to see the raw response object? (y/n)")
-      action = input().lower()
-      if action == "y":
+      if input().lower() == "y":
         print(Fore.YELLOW + f"Debug, response: {json.dumps(response, indent=2)}")
 
-    if (response.choices[0].finish_reason == "length"):
-      if self.chat_history.length <= 2:
-        print(Fore.RED + "Error: OpenAI returned a truncated response due to token limit, unable to remove old messages and retry as there aren't any old messages.")
-        # There is no way to handle this error, this is a hard limit and the user can only lower their input length. God knows how they managed to hit it with one message anyway if this is ever hit.
-      else:
-        # If the API somehow becomes near instantanious in the future we'll want to drop a sleep in here to avoid spamming the API and draining credits rapidly.
-        print(Fore.YELLOW + "Warning: OpenAI returned a truncated response. Removing earliest message from chat history and retrying.")
-        self.chat_history.pop(0)
-        return self.__call_chat_gpt()
+      print(Fore.YELLOW + f"Debug, would you like to override GPT's message? (y/n)")
+      if input().lower() == "y":
+        print(Fore.YELLOW + f"Okay, what would you like GPT to respond with?")
+        response.choices[0].message.content = input()
     
-    # If we've made it this far, the response is valid, we can add it to the chat history and return the content string.
-    self.chat_history.append(response.choices[0].message)
+    # Okay, we got our response back so now we can add our prompt to the chat history.
+    self.chat_history.add_item({
+      "role": role,
+      "content": prompt,
+      # We only want to count the tokens for this message, not the entire chat history which was also part of the prompt and is included 
+      # in the usage.prompt_tokesn value. So we subtract the total tokens from the prompt tokens to get the tokens for just this message.
+      "tokens": response.usage.prompt_tokens - self.chat_history.get_total_tokens()
+      # TODO this logic seems to be slightly flawed somewhere, in testing history says I only have 800 tokens total in my prompt yet openai will claim I have 1000
+      # The good news is that a difference this small doesn't really matter much for the purpose of recycling chat history to prevent hitting the token limit.
+      # So I've decided I don't care enough to fix it right now.
+    })
+
+    if (response.choices[0].finish_reason == "length"):
+        print(Fore.YELLOW + "Warning: OpenAI returned a truncated response due to token limit.")
+        # There is no way to handle this error, this is a hard limit and the user can only lower their input length. 
+        # God knows how they managed to hit this anyway as chat_history.py deletes old history to keep it below 2048 tokens.
+    
+    # If we've made it this far, the response is valid, we can add it to the chat history and return the content string
+    # **response.choices[0].message.__dict__ would've also worked but I prefer being explicit
+    self.chat_history.add_item({
+      "role": response.choices[0].message.role,
+      "content": response.choices[0].message.content,
+      "tokens": response.usage.completion_tokens
+    })
     return response.choices[0].message.content.strip()
 
   def __execute_code(self, code: str) -> None:
@@ -135,30 +172,20 @@ find . -name "catphoto.png"
       execute_results = e
 
     print(f"{Fore.CYAN}{Style.BRIGHT}----------------")
-
-    print(Fore.GREEN + "\nWould you like to give the output to the chatbot? (y/n)")
-    print(f"----------------{Style.NORMAL}")
-    action = input().lower()
-    print(f"{Style.BRIGHT}----------------")
-    if action == "y":
-      self.__chat_ask_and_response_handling(f"The code execution errored: \n{execute_results}")
-
-
-  def __chat_ask_and_response_handling(self, prompt: str) -> None:
-    response = None
-    # Optional debug operation
-    if self.debug:
-      print(Fore.YELLOW + f"Debug, would you like to write GPT's response yourself? (y/n)")
+     
+    if execute_results:
+      print(Fore.GREEN + "\nWould you like to give the output to the chatbot? (y/n)")
+      print(f"----------------{Style.NORMAL}")
       action = input().lower()
+      print(f"{Style.BRIGHT}----------------")
       if action == "y":
-        print(Fore.YELLOW + f"Okay, what would you like GPT to respond with?")
-        response = input()
+        self.__chat_ask_and_response_handling(f"The code execution errored: \n{execute_results}")
+
+
+  def __chat_ask_and_response_handling(self, prompt: Optional[str] = None, role: str = "user") -> None:
+    response = self.__call_chat_gpt(prompt, role)
     
-    # Normal operation
-    if not response:
-      response = self.__call_chat_gpt(prompt)
-      
-    print(Fore.BLUE + "\nResponse:")
+    print(Fore.BLUE + "\nGenie:")
     print(f"----------------{Style.NORMAL}")
     print(Fore.BLUE + response)
     print(f"{Style.BRIGHT}----------------")

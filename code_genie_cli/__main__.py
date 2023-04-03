@@ -1,4 +1,4 @@
-from .codegeniecli import CodeGenieCLI
+from .code_genie_cli import CodeGenieCLI
 
 def main():
     cli = CodeGenieCLI()

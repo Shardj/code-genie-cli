@@ -1,4 +1,4 @@
-import openai, os, subprocess, sys, platform, json, argparse, re
+import openai, os, subprocess, sys, platform, json, argparse, re, time, threading
 from typing import Dict, Optional, Any, List
 from definitions import KEY_PATH, DEBUG
 from colorama import Fore, Style
@@ -7,6 +7,7 @@ from code_genie_cli.chat_history import ChatHistory
 # Main and only class of the project at time of writing, used by calling run() on an instance of it. Or just calling main().
 class CodeGenieCLI:
   def __init__(self) -> None:
+    self.stop_spinner_event = threading.Event()
     openai.api_key = self.__read_api_key_from_file()
     self.chat_history = ChatHistory()
     self.temperature = 0.3 # Minimum value is 0.0, maximum value is 1.0. We want the model to be fairly consistent and not too random.
@@ -59,6 +60,8 @@ find . -name "catphoto.png"
   def run(self) -> None:
       try:
         print(f"{Style.BRIGHT}{Fore.GREEN}Welcome to {Fore.MAGENTA}code-genie-cli{Fore.GREEN}!")
+        # Kick off the loading spinner thread
+        self.__start_spinner()
         # Our first prompt will be the system message, this gets genie to introduce themselves to the user as well as allowing us to calculate how many tokens it is
         self.__chat_ask_and_response_handling(self.__generate_system_content(), "system")
         while True:
@@ -84,6 +87,7 @@ find . -name "catphoto.png"
 
     # Attempt to query openai
     try:
+      self.__continue_spinner()
       # Example response
       # {
       #   "id": "chatcmpl-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -111,6 +115,7 @@ find . -name "catphoto.png"
         messages=temporary_chat_history,
         temperature=self.temperature,
       )
+      self.__halt_spinner()
     except Exception as e:
       if DEBUG:
         print(Fore.YELLOW + f"Debug, all messages: {json.dumps(temporary_chat_history, indent=2)}")
@@ -223,3 +228,28 @@ find . -name "catphoto.png"
             print(Fore.GREEN + f"There is no code block number {action}.")
         else:
           break
+
+  def __start_spinner(self):
+    t = threading.Thread(target=self.__animate_spinner)
+    t.daemon = True  # Set the thread as a daemon thread
+    t.start()
+
+  def __continue_spinner(self):
+    self.stop_spinner_event.clear()
+
+  def __halt_spinner(self):
+    self.stop_spinner_event.set()
+    # Remove the halted spinner character
+    sys.stdout.write('\b \b')
+    sys.stdout.flush()
+
+  def __animate_spinner(self):
+    while True:  # Infinite loop to keep the spinner thread alive
+      for cursor in '|/-\\':
+        if not self.stop_spinner_event.is_set():
+          sys.stdout.write(cursor)
+          sys.stdout.flush()
+          time.sleep(0.1)
+          sys.stdout.write('\b')
+        else:
+          time.sleep(0.1)

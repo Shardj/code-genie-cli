@@ -1,7 +1,7 @@
 import openai, sys, json
 from definitions import KEY_PATH, DEBUG
 from code_genie_cli.chat_history import ChatHistory
-from colorama import Fore
+from colorama import Fore, Style
 # For some reason Fore.RESET is actually secretly Style.RESET_ALL and this is undocumented behoaviour.
 # So we need to manually set Fore.RESET to the correct value which will only reset the foreground colour and not touch the style.
 Fore.RESET = "\033[39m"
@@ -19,7 +19,7 @@ class OpenaiApiCaller:
           return f.read().strip()
       except FileNotFoundError:
         print(f"{Fore.RED}Error: The API key file '{KEY_PATH}' was not found.")
-        print(f"Please make sure the file exists and contains your API key.")
+        print(f"Please make sure the file exists and contains your API key.{Style.RESET_ALL}")
         sys.exit(1)
 
     # Role is an option so you can choose to send a message as the user or the system
@@ -67,7 +67,7 @@ class OpenaiApiCaller:
         if DEBUG:
           print(f"{Fore.YELLOW}Debug, all messages: {json.dumps(temporary_chat_history, indent=2)}")
         print(f"{Fore.RED}Error: Failed to send message to OpenAI.")
-        print(f"Error message: {e}")
+        print(f"Error message: {e}{Style.RESET_ALL}")
         sys.exit(1)
       
       if DEBUG:

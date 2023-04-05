@@ -56,7 +56,7 @@ class CodeGenieCLI:
           first_promt_injection = ""
           self.__chat_ask_and_response_handling(user_message)
       except KeyboardInterrupt:
-        print(f"{Fore.YELLOW}\n\nExiting the script gracefully.")
+        print(f"{Fore.YELLOW}\n\nExiting the script gracefully.{Style.RESET_ALL}")
         sys.exit(0)
 
   def __chat_ask_and_response_handling(self, user_message: Optional[str] = None, role: str = "user") -> None:

@@ -40,7 +40,7 @@ Rules:
 Here are some example responses showing how to execute code and the kind of language you should use:
 
 1. If the user asked "Move any images in Downloads to a directory in Pictures called downloaded?", you could respond with:
-"Sure, I can help you with that. Here's some code that will move any images in the Downloads directory to a subdirectory in Pictures called downloaded:
+""Sure, I can help you with that. Here's some code that will move any images in the Downloads directory to a subdirectory in Pictures called downloaded:
 
 ```python
 import os
@@ -59,22 +59,57 @@ for filename in os.listdir(downloads_dir):
         src_path = os.path.join(downloads_dir, filename)
         dst_path = os.path.join(downloaded_dir, filename)
         shutil.move(src_path, dst_path)
-```"
+```""
 
-2. If the user asked "How much space is on my harddrive?", you could respond with:
-"Sure, I can help you with that. Here's some code that will print the available space on your hard drive:
+2. If the user asked "Make a 2 slide presentation about WW2", you could respond with:
+""Sure, I can help you with that. Here's some code that will create a PowerPoint presentation with 2 slides on WW2:
 
 ```python
-import shutil
+import os
+import subprocess
 
-total, used, free = shutil.disk_usage("/")
-print(f"Total: {{total/(10**9)}} GB")
-print(f"Used: {{used/(10**9)}} GB")
-print(f"Free: {{free/(10**9)}} GB")
-```"
+# Check if python-pptx is installed and install it if it's not
+try:
+    import pptx
+except ImportError:
+    subprocess.run(['pip3', 'install', 'python-pptx'], check=True)
+    import pptx
+from pptx import Presentation
+from pptx.util import Inches
+
+# Create a new presentation
+presentation = Presentation()
+
+# Add a title slide
+title_slide_layout = presentation.slide_layouts[0]
+slide = presentation.slides.add_slide(title_slide_layout)
+title = slide.shapes.title
+subtitle = slide.placeholders[1]
+title.text = "WW2 Presentation"
+subtitle.text = "A brief overview of World War 2"
+
+# Add a slide with details about WW2
+bullet_slide_layout = presentation.slide_layouts[1]
+slide = presentation.slides.add_slide(bullet_slide_layout)
+shapes = slide.shapes
+title_shape = shapes.title
+body_shape = shapes.placeholders[1]
+title_shape.text = "World War 2"
+tf = body_shape.text_frame
+tf.text = "World War 2 was a global war that lasted from 1939 to 1945. It involved the majority of the world's nations, including all of the great powers, organized into two opposing military alliances: the Allies and the Axis."
+
+# Save the presentation
+presentation_path = os.path.expanduser('~/Documents/WW2_presentation.pptx')
+presentation.save(presentation_path)
+
+# Open the presentation in a new session of LibreOffice Impress
+os.system(f'setsid libreoffice --impress {{presentation_path}} &')
+```
+
+The presentation will be saved in your Documents directory as "WW2_presentation.pptx" and opened""
 
 3. If the user asked "Find and set a new desktop wallpaper for me?", you could respond with:
-"Sure, I can help you with that. Here's some code that will download a random image from Unsplash and set it as your desktop wallpaper:
+""Sure, I can help you with that. Here's some code that will download a random image from Unsplash and set it as your desktop wallpaper:
 
 ```python
 import os
@@ -92,5 +127,5 @@ urllib.request.urlretrieve(url, f'{{downloads_dir}}/wallpaper.jpg')
 
 # Setting the wallpaper
 os.system(f'gsettings set org.gnome.desktop.background picture-uri file://{{downloads_dir}}/wallpaper.jpg')
-```"
+```""
 """

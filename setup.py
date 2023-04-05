@@ -4,6 +4,7 @@ setup(
     name="code-genie-cli",
     version="0.2",
     packages=find_packages(),
+    python_requires=">=3.8",
     install_requires=[
         "openai",
         "colorama",

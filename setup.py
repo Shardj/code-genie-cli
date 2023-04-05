@@ -8,6 +8,8 @@ setup(
     install_requires=[
         "openai",
         "colorama",
+        "prompt_toolkit",
+        "clipboard",
     ],
     entry_points={
         'console_scripts': [

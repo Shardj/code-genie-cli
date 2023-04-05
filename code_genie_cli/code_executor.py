@@ -66,7 +66,7 @@ class CodeExecutor:
       log_capture_string.close()
       logger.removeHandler(handler) # Just being explicit here
       if DEBUG:
-        print(f"{Fore.YELLOW} Would you like to see the output of the code? (y/n){Fore.RESET}")
+        print(f"{Fore.YELLOW} Would you like to see the output of the code? (y/n) {Fore.RESET}")
         if input().lower() == 'y':
           print(output_string)
       return success, output_string

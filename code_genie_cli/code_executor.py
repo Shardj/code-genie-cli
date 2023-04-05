@@ -1,5 +1,8 @@
 import logging, os, select, subprocess, sys, tempfile, pty
 from colorama import Fore
+# For some reason Fore.RESET is actually secretly Style.RESET_ALL and this is undocumented behoaviour.
+# So we need to manually set Fore.RESET to the correct value which will only reset the foreground colour and not touch the style.
+Fore.RESET = "\033[39m"
 from definitions import DEBUG
 from typing import Dict, Optional, Any, List, Tuple
 from code_genie_cli.timeout_handler import TimeoutHandler
@@ -52,7 +55,10 @@ class CodeExecutor:
       if live_output:
         print(message)
       success = False
-    except subprocess.CalledProcessError as e:
+    # Trying to only catch errors that are likely to be caused by the code run within Popen, and not errors in the code_genie_cli
+    # TODO I should probably have a try catch around the logger loop above so any exceptions that aren't from Popen never reach the below except block
+    # Since if they did I would be sending errors messages within code_genie_cli to OpenAI
+    except (subprocess.CalledProcessError, SyntaxError, TypeError) as e:
       # Handle errors in the subprocess by appending the error message to the logger and setting success to false
       message=f"Error executing code: {str(e)}"
       logger.error(message)

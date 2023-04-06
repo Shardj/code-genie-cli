@@ -2,7 +2,8 @@
 
 Uses OpenAI's GPT API to get a helpful assistant within your terminal. Genie can suggest code executions that will be directly run after confirmation from the user. Forget the command to mount a drive? Simply ask code-genie-cli to do it for you!
 
-![image of program in use](demo.png)
+https://user-images.githubusercontent.com/5624120/230372901-30a12d9d-303f-42dc-b39c-7a4df33094bc.mp4
+
 ## Installation
 
 This project now only has python related depenencies and should work on both Windows and Unix. However everything is tested on Unix so I may be wrong. Windows users will need to install manually as I haven't yet made a windows installation script.

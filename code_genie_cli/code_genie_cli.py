@@ -1,4 +1,4 @@
-import openai, os, sys, platform, json, re, time, threading, clipboard
+import os, sys, re, clipboard, subprocess
 from typing import Dict, Optional, Any, List, Tuple
 from definitions import KEY_PATH, DEBUG
 from colorama import Fore, Style
@@ -44,6 +44,7 @@ class CodeGenieCLI:
 
   def run(self) -> None:
       try:
+        self.__clear_terminal()
         print(f"{Style.BRIGHT}{Fore.GREEN}Welcome to {Fore.BLUE}code-genie-cli{Fore.GREEN}!{Fore.RESET}")
         # Our first prompt will be the system message, this gets genie to introduce themselves to the user as well as allowing us to calculate how many tokens it is
         self.__chat_ask_and_response_handling(SystemContent().generate(), "system")
@@ -58,6 +59,12 @@ class CodeGenieCLI:
       except KeyboardInterrupt:
         print(f"{Fore.YELLOW}\n\nExiting the script gracefully.{Style.RESET_ALL}")
         sys.exit(0)
+
+  def __clear_terminal(self):
+    if os.name == 'posix':  # for Linux and macOS
+        _ = subprocess.call('clear')
+    elif os.name == 'nt':  # for Windows
+        _ = subprocess.call('cls', shell=True)
 
   def __chat_ask_and_response_handling(self, user_message: Optional[str] = None, role: str = "user") -> None:
     print(Fore.BLUE, end="")
@@ -104,3 +111,5 @@ class CodeGenieCLI:
           else:
             bonus = "Please fix your code and try again. Provide a single python script to solve the users request."
           self.__chat_ask_and_response_handling(f"An error occoured. {bonus} Here's the output: \n{output}")
+    else:
+      print(f"No output from code execution.")

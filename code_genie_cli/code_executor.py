@@ -3,7 +3,7 @@ from colorama import Fore
 # For some reason Fore.RESET is actually secretly Style.RESET_ALL and this is undocumented behoaviour.
 # So we need to manually set Fore.RESET to the correct value which will only reset the foreground colour and not touch the style.
 Fore.RESET = "\033[39m"
-from definitions import DEBUG
+from code_genie_cli.definitions import DEBUG
 from typing import Dict, Optional, Any, List, Tuple
 from code_genie_cli.timeout_handler import TimeoutHandler
 from code_genie_cli.first_in_first_out_io import FirstInFirstOutIO

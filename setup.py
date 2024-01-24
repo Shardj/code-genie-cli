@@ -10,6 +10,7 @@ setup(
         "colorama",
         "prompt_toolkit",
         "clipboard",
+        "requests"
     ],
     entry_points={
         'console_scripts': [

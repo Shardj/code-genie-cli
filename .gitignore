@@ -10,5 +10,3 @@ dist/
 build/
 *.egg
 
-# API Key
-openai_key.txt

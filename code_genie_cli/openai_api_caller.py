@@ -1,5 +1,5 @@
 import openai, sys, json
-from definitions import KEY_PATH, DEBUG
+from code_genie_cli.definitions import KEY_PATH, DEBUG
 from code_genie_cli.chat_history import ChatHistory
 from colorama import Fore, Style
 # For some reason Fore.RESET is actually secretly Style.RESET_ALL and this is undocumented behoaviour.

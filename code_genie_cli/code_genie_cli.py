@@ -1,13 +1,15 @@
 import os, sys, re, clipboard, subprocess
 from typing import Dict, Optional, Any, List, Tuple
-from definitions import KEY_PATH, DEBUG
-from colorama import Fore, Style
+from colorama import Fore, Style, init
+# Initialize colorama
+init(autoreset=True)
 # For some reason Fore.RESET is actually secretly Style.RESET_ALL and this is undocumented behoaviour.
 # So we need to manually set Fore.RESET to the correct value which will only reset the foreground colour and not touch the style.
 Fore.RESET = "\033[39m"
 from prompt_toolkit import prompt
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.formatted_text import ANSI 
+from prompt_toolkit.formatted_text import ANSI
+from code_genie_cli.definitions import KEY_PATH, DEBUG
 from code_genie_cli.openai_api_caller import OpenaiApiCaller
 from code_genie_cli.code_executor import CodeExecutor
 from code_genie_cli.system_content import SystemContent

@@ -25,17 +25,17 @@ trap 'errHandler' ERR INT # Call errHandler function on ERR (non-zero exit code)
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR" # Go to project root
 
-if [ ! -f openai_key.txt ]; then
-  if [ -f chatgpt_key.txt ]; then
-    infoMessage "chatgpt_key.txt found. Renaming to openai_key.txt"
-    mv chatgpt_key.txt openai_key.txt
-  else
-    infoMessage "openai_key.txt not found."
-    read -p "Please enter your OpenAI API key: " api_key
-    echo "$api_key" > openai_key.txt
-    infoMessage "API key saved to openai_key.txt"
-  fi
-fi
+# if [ ! -f openai_key.txt ]; then
+#   if [ -f chatgpt_key.txt ]; then
+#     infoMessage "chatgpt_key.txt found. Renaming to openai_key.txt"
+#     mv chatgpt_key.txt openai_key.txt
+#   else
+#     infoMessage "openai_key.txt not found."
+#     read -p "Please enter your OpenAI API key: " api_key
+#     echo "$api_key" > openai_key.txt
+#     infoMessage "API key saved to openai_key.txt"
+#   fi
+# fi
 
 # If python3 command isn't found, and python command isn't found or it is found but is not version 3
 if ! (which python3 &>/dev/null || (which python &>/dev/null && python --version 2>&1 | grep -qi "Python 3")); then
@@ -44,17 +44,40 @@ fi
 
 infoMessage "Now attempting installation of Python 3 dependencies. This may take a while."
 sleep 0.2
-# If pip3 command isn't found
-if ! which pip3 &>/dev/null; then
-  # If pip command is found and is version 3
-  if which pip &>/dev/null && pip --version | grep -qi "python 3"; then
-    pip install -e .
+# # If pip3 command isn't found
+# if ! which pip3 &>/dev/null; then
+#   # If pip command is found and is version 3
+#   if which pip &>/dev/null && pip --version | grep -qi "python 3"; then
+#     pip install -e .
+#   else
+#     infoMessage "pip3 not found. Please install pip3 and try again."
+#     exit 0
+#   fi
+# else
+#   pip3 install -e .
+# fi
+install_with_pipx_if_needed() {
+  if ! $1 install -e . --force-reinstall 2>&1 | grep -q 'externally-managed-environment'; then
+    infoMessage "Dependencies force-installed using $1."
   else
-    infoMessage "pip3 not found. Please install pip3 and try again."
-    exit 0
+    infoMessage "Encountered an externally-managed-environment error with $1. Attempting installation with pipx."
+    if ! which pipx &>/dev/null; then
+      infoMessage "pipx not found. Please install pipx."
+      exit 1
+    fi
+    pipx install --force .
   fi
+}
+
+
+# Check for pip3 or pip (Python 3 version)
+if which pip3 &>/dev/null; then
+  install_with_pipx_if_needed pip3
+elif which pip &>/dev/null && pip --version 2>&1 | grep -qi "python 3"; then
+  install_with_pipx_if_needed pip
 else
-  pip3 install -e .
+  infoMessage "pip3 not found and pip is not associated with Python 3. Please install pip3."
+  exit 1
 fi
 
 infoMessage "Installation complete. Now checking PATH."

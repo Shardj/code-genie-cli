@@ -1,5 +1,5 @@
 import json, platform, sys, os, subprocess, pkgutil
-from definitions import DEBUG
+from code_genie_cli.definitions import DEBUG
 from colorama import Fore
 
 class ChatHistory:

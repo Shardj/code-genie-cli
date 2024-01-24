@@ -58,7 +58,7 @@ class OpenaiApiCaller:
         #     }
         #   ]
         # }
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
           model="gpt-3.5-turbo",
           messages=temporary_chat_history,
           temperature=self.temperature,
